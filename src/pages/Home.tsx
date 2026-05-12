@@ -18,8 +18,8 @@ export const Home: React.FC = () => {
         const player = await sweepstakeApi.getPlayerSweepstakes(userProfile.uid);
         setOwnedSweepstakes(owned);
         setPlayerSweepstakes(player);
-      } catch (err) {
-        console.error('Failed to fetch sweepstakes', err);
+      } catch {
+        // Keep page stable and show empty state if fetch fails.
       } finally {
         setLoading(false);
       }

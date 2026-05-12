@@ -10,7 +10,6 @@ import { CreateSweepstake } from './pages/CreateSweepstake';
 import { JoinSweepstake } from './pages/JoinSweepstake';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { PlayerDashboard } from './pages/PlayerDashboard';
-// import { FixturesPage } from './pages/FixturesPage';
 import './App.css';
 
 function App() {
@@ -58,14 +57,6 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PlayerDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              // path="/sweepstake/:sweepstakeId/fixtures"
-              element={
-                <ProtectedRoute>
-                  {/* <FixturesPage /> */}
                 </ProtectedRoute>
               }
             />

@@ -61,12 +61,9 @@ export const OwnerDashboard: React.FC = () => {
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
             playerName = userDocSnap.data().name;
-            console.log(`✓ Fetched name for ${playerData.userId}: ${playerName}`);
-          } else {
-            console.warn(`✗ User document not found for ${playerData.userId}`);
           }
-        } catch (err) {
-          console.error(`✗ Failed to fetch player name for ${playerData.userId}:`, err);
+        } catch {
+          // Keep fallback name when user lookup fails.
         }
 
         playersList.push({
