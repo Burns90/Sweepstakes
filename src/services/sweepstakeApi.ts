@@ -9,13 +9,17 @@ import {
   updateDoc,
   Timestamp,
 } from 'firebase/firestore';
+import { ALL_TEAMS } from '../constants/teams';
 import { db } from './firebase';
+
+export type SweepstakeType = 'worldcup' | 'eurovision';
 
 export interface Sweepstake {
   id: string;
   ownerId: string;
   name: string;
   leagueCode: string;
+  type: SweepstakeType;
   enrollmentDeadline: Date;
   tournamentYear: number;
   status: 'active' | 'completed' | 'cancelled';
@@ -41,7 +45,8 @@ export const sweepstakeApi = {
   async createSweepstake(
     ownerId: string,
     name: string,
-    enrollmentDeadline: Date
+    enrollmentDeadline: Date,
+    type: SweepstakeType = 'worldcup'
   ): Promise<Sweepstake> {
     const leagueCode = this.generateLeagueCode();
 
@@ -49,6 +54,7 @@ export const sweepstakeApi = {
       ownerId,
       name,
       leagueCode,
+      type,
       enrollmentDeadline: Timestamp.fromDate(enrollmentDeadline),
       tournamentYear: 2026,
       status: 'active',
@@ -82,6 +88,7 @@ export const sweepstakeApi = {
       ownerId: data.ownerId,
       name: data.name,
       leagueCode: data.leagueCode,
+      type: data.type || 'worldcup',
       enrollmentDeadline: data.enrollmentDeadline.toDate(),
       tournamentYear: data.tournamentYear,
       status: data.status,
@@ -102,6 +109,7 @@ export const sweepstakeApi = {
     return {
       id: docSnap.id,
       ownerId: data.ownerId,
+      type: data.type || 'worldcup',
       name: data.name,
       leagueCode: data.leagueCode,
       enrollmentDeadline: data.enrollmentDeadline.toDate(),
@@ -145,21 +153,12 @@ export const sweepstakeApi = {
   },
 
   async getAvailableTeams(sweepstakeId: string): Promise<string[]> {
-    const allTeams = [
-      'United States', 'Canada', 'Mexico', 'Argentina', 'Brazil', 'France', 'Germany', 'England', 'Spain', 'Italy',
-      'Netherlands', 'Portugal', 'Belgium', 'Uruguay', 'Croatia', 'Switzerland', 'Denmark', 'Poland', 'Senegal',
-      'Morocco', 'Japan', 'South Korea', 'Australia', 'Iran', 'Saudi Arabia', 'Ecuador', 'Cameroon', 'Ghana',
-      'Serbia', 'Tunisia', 'Costa Rica', 'Qatar', 'Egypt', 'Nigeria', 'Chile', 'Colombia', 'Peru', 'Turkey',
-      'Czech Republic', 'Sweden', 'Norway', 'Ukraine', 'Greece', 'Algeria', 'Ivory Coast', 'South Africa',
-      'New Zealand', 'United Arab Emirates'
-    ];
-
     const playersSnapshot = await getDocs(
       collection(db, `sweepstakes/${sweepstakeId}/players`)
     );
     const assignedTeams = playersSnapshot.docs.map((doc) => doc.data().assignedTeam);
 
-    return allTeams.filter((team) => !assignedTeams.includes(team));
+    return ALL_TEAMS.filter((team) => !assignedTeams.includes(team));
   },
 
   async getPlayersByTeam(sweepstakeId: string, team: string): Promise<Player | null> {
@@ -217,6 +216,7 @@ export const sweepstakeApi = {
         ownerId: data.ownerId,
         name: data.name,
         leagueCode: data.leagueCode,
+        type: data.type || 'worldcup',
         enrollmentDeadline: data.enrollmentDeadline.toDate(),
         tournamentYear: data.tournamentYear,
         status: data.status,
@@ -244,6 +244,7 @@ export const sweepstakeApi = {
           ownerId: sweepData.ownerId,
           name: sweepData.name,
           leagueCode: sweepData.leagueCode,
+          type: sweepData.type || 'worldcup',
           enrollmentDeadline: sweepData.enrollmentDeadline.toDate(),
           tournamentYear: sweepData.tournamentYear,
           status: sweepData.status,

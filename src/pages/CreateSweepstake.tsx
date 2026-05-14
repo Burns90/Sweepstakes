@@ -6,6 +6,7 @@ import { sweepstakeApi } from '../services/sweepstakeApi';
 
 export const CreateSweepstake: React.FC = () => {
   const [name, setName] = useState('');
+  const [type, setType] = useState<'worldcup' | 'eurovision'>('worldcup');
   const [enrollmentDeadlineDate, setEnrollmentDeadlineDate] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +29,7 @@ export const CreateSweepstake: React.FC = () => {
         throw new Error('Enrollment deadline must be in the future');
       }
 
-      const sweepstake = await sweepstakeApi.createSweepstake(user.uid, name, deadline);
+      const sweepstake = await sweepstakeApi.createSweepstake(user.uid, name, deadline, type);
       setCurrentSweepstake(sweepstake);
       navigate(`/sweepstake/${sweepstake.id}`);
     } catch (err: any) {
@@ -45,6 +46,17 @@ export const CreateSweepstake: React.FC = () => {
         <h1 className="text-5xl section-title mb-2">Create Sweepstake</h1>
         <p className="section-subtitle mb-6">Set up the pool details and enrollment window for your players.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block section-subtitle font-semibold mb-2">Sweepstake Type</label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as 'worldcup' | 'eurovision')}
+              className="input-dark"
+            >
+              <option value="worldcup">World Cup</option>
+              <option value="eurovision">Eurovision</option>
+            </select>
+          </div>
           <div>
             <label className="block section-subtitle font-semibold mb-2">Sweepstake Name</label>
             <input

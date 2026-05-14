@@ -1,35 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getAllParticipantsByType, getRarityTier, getParticipantsByType } from '../constants/participants';
 import { sweepstakeApi } from '../services/sweepstakeApi';
-
-const TEAM_FLAGS: { [key: string]: string } = {
-  'Brazil': '🇧🇷', 'France': '🇫🇷', 'Argentina': '🇦🇷', 'England': '🏴', 'Germany': '🇩🇪',
-  'Spain': '🇪🇸', 'Portugal': '🇵🇹', 'Netherlands': '🇳🇱', 'Belgium': '🇧🇪', 'Uruguay': '🇺🇾',
-  'Croatia': '🇭🇷', 'Switzerland': '🇨🇭', 'Denmark': '🇩🇰', 'Poland': '🇵🇱', 'Senegal': '🇸🇳',
-  'Morocco': '🇲🇦', 'Japan': '🇯🇵', 'South Korea': '🇰🇷', 'Australia': '🇦🇺', 'Iran': '🇮🇷',
-  'Saudi Arabia': '🇸🇦', 'Ecuador': '🇪🇨', 'Cameroon': '🇨🇲', 'Ghana': '🇬🇭', 'Serbia': '🇷🇸',
-  'Tunisia': '🇹🇳', 'Costa Rica': '🇨🇷', 'Qatar': '🇶🇦', 'Egypt': '🇪🇬', 'Nigeria': '🇳🇬',
-  'Mexico': '🇲🇽', 'Canada': '🇨🇦', 'USA': '🇺🇸', 'Wales': '🏴', 'Chile': '🇨🇱',
-  'Colombia': '🇨🇴', 'Peru': '🇵🇪', 'Turkey': '🇹🇷', 'Czech Republic': '🇨🇿', 'Sweden': '🇸🇪',
-  'Norway': '🇳🇴', 'Ukraine': '🇺🇦', 'Greece': '🇬🇷', 'Algeria': '🇩🇿', 'Ivory Coast': '🇨🇮',
-  'South Africa': '🇿🇦', 'New Zealand': '🇳🇿', 'United Arab Emirates': '🇦🇪'
-};
-
-const ALL_TEAMS = Object.keys(TEAM_FLAGS);
-const ULTRA_RARE_TEAMS = ['Brazil', 'France', 'Argentina', 'England', 'Germany'];
-const RARE_TEAMS = ['Spain', 'Portugal', 'Netherlands', 'Belgium', 'Uruguay'];
-
-const getTeamRarityClass = (team: string): 'ultra-rare' | 'rare' | 'common' => {
-  if (ULTRA_RARE_TEAMS.includes(team)) return 'ultra-rare';
-  if (RARE_TEAMS.includes(team)) return 'rare';
-  return 'common';
-};
+import { FlagImage } from '../components/FlagImage';
 
 interface AssignmentResult {
   sweepstakeId: string;
   sweepstakeName: string;
   assignedTeam: string;
+  sweepstakeType: 'worldcup' | 'eurovision';
 }
 
 export const JoinSweepstake: React.FC = () => {
@@ -99,6 +79,7 @@ export const JoinSweepstake: React.FC = () => {
         sweepstakeId: sweepstake.id,
         sweepstakeName: sweepstake.name,
         assignedTeam: randomTeam,
+        sweepstakeType: sweepstake.type,
       });
       setAnimationPhase('spinning');
       setRotation(0);
@@ -112,9 +93,11 @@ export const JoinSweepstake: React.FC = () => {
   // Show CS-style case opening animation
   if (assignmentResult) {
     const isRevealing = animationPhase === 'revealing';
-    const spinningTeam = ALL_TEAMS[Math.floor(rotation / 37.5) % ALL_TEAMS.length];
+    const allParticipants = getAllParticipantsByType(assignmentResult.sweepstakeType);
+    const participantFlags = getParticipantsByType(assignmentResult.sweepstakeType);
+    const spinningTeam = allParticipants[Math.floor(rotation / 37.5) % allParticipants.length];
     const visibleTeam = isRevealing ? assignmentResult.assignedTeam : spinningTeam;
-    const rarityClass = getTeamRarityClass(visibleTeam);
+    const rarityClass = getRarityTier(visibleTeam, assignmentResult.sweepstakeType);
 
     return (
       <div className="app-bg flex items-center justify-center px-4">
@@ -152,7 +135,6 @@ export const JoinSweepstake: React.FC = () => {
 
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <p className="pill pill-gold mb-3">Case Opening</p>
             <p className="section-subtitle">{assignmentResult.sweepstakeName}</p>
           </div>
 
@@ -168,16 +150,21 @@ export const JoinSweepstake: React.FC = () => {
             >
               {/* Show random teams while spinning */}
               {!isRevealing ? (
-                <div className="text-6xl mb-4 animate-bounce">
-                  {TEAM_FLAGS[spinningTeam] || '⚽'}
+                <div className="text-center animate-bounce">
+                  <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+                    <FlagImage country={spinningTeam} size="lg" />
+                  </div>
+                  <div className="text-xl font-bold text-gray-900">{spinningTeam}</div>
                 </div>
               ) : null}
 
               {/* Reveal the actual team */}
               {isRevealing && (
-                <div className="animate-in fade-in zoom-in duration-500">
-                  <div className="text-7xl mb-4">{TEAM_FLAGS[assignmentResult.assignedTeam] || '⚽'}</div>
-                  <div className="text-3xl font-bold text-gray-900">{assignmentResult.assignedTeam}</div>
+                <div className="animate-in fade-in zoom-in duration-500 text-center">
+                  <div style={{ height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+                    <FlagImage country={assignmentResult.assignedTeam} size="lg" />
+                  </div>
+                  <div className="text-4xl font-bold text-gray-900">{assignmentResult.assignedTeam}</div>
                 </div>
               )}
             </div>
@@ -194,7 +181,7 @@ export const JoinSweepstake: React.FC = () => {
 
                 <div className="bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg p-6 mb-6">
                   <p className="text-5xl font-bold text-blue-600 mb-2">
-                    {TEAM_FLAGS[assignmentResult.assignedTeam]}
+                    {participantFlags[assignmentResult.assignedTeam]}
                   </p>
                   <p className="text-3xl font-bold text-blue-600">{assignmentResult.assignedTeam}</p>
                 </div>

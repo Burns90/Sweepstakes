@@ -5,6 +5,8 @@ import { sweepstakeApi, Player, Sweepstake } from '../services/sweepstakeApi';
 import { useSweepstake } from '../contexts/SweepstakeContext';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { getParticipantsByType } from '../constants/participants';
+import { FlagImage } from '../components/FlagImage';
 
 export const PlayerDashboard: React.FC = () => {
   const { sweepstakeId } = useParams<{ sweepstakeId: string }>();
@@ -94,22 +96,24 @@ export const PlayerDashboard: React.FC = () => {
         )}
 
         <div className="glass-card" style={{ marginBottom: '30px', padding: '20px' }}>
-          <h2 className="text-4xl section-title">Your Team</h2>
-          <div className="pill pill-gold" style={{ marginBottom: '10px' }}>Assigned Team</div>
-          <div style={{ fontSize: '30px', fontWeight: 'bold', marginBottom: '4px', color: '#e2e8f0' }}>
+          <h2 className="text-4xl section-title">{sweepstake.type === 'eurovision' ? 'Your Country' : 'Your Team'}</h2>
+          <div className="pill pill-gold" style={{ marginBottom: '10px' }}>{sweepstake.type === 'eurovision' ? 'Assigned Country' : 'Assigned Team'}</div>
+          <div style={{ fontSize: '30px', fontWeight: 'bold', marginBottom: '4px', color: '#e2e8f0', display: 'flex', alignItems: 'center' }}>
+            <FlagImage country={myPlayer.assignedTeam} size="lg" />
             {myPlayer.assignedTeam}
           </div>
-          <div className="section-subtitle">This is your active team in the sweepstake.</div>
+          <div className="section-subtitle">This is your active {sweepstake.type === 'eurovision' ? 'country' : 'team'} in the sweepstake.</div>
         </div>
 
         <div className="glass-card" style={{ marginBottom: '20px', padding: '20px' }}>
-          <h3 className="text-3xl section-title">Assigned Teams</h3>
-          <p className="section-subtitle">Total Teams Assigned: {allTeams.length}</p>
+          <h3 className="text-3xl section-title">{sweepstake.type === 'eurovision' ? 'Assigned Countries' : 'Assigned Teams'}</h3>
+          <p className="section-subtitle">Total {sweepstake.type === 'eurovision' ? 'Countries' : 'Teams'} Assigned: {allTeams.length}</p>
           <div style={{ marginTop: '10px' }}>
             <ul style={{ margin: 0, paddingLeft: '18px' }}>
               {allTeams.map((team) => (
-                <li key={team} style={{ color: team === myPlayer.assignedTeam ? '#60a5fa' : '#cbd5e1', marginBottom: '4px' }}>
-                  {team} {team === myPlayer.assignedTeam && '(Your Team)'}
+                <li key={team} style={{ color: team === myPlayer.assignedTeam ? '#60a5fa' : '#cbd5e1', marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+                  <FlagImage country={team} size="sm" />
+                  {team} {team === myPlayer.assignedTeam && `(Your ${sweepstake.type === 'eurovision' ? 'Country' : 'Team'})`}
                 </li>
               ))}
             </ul>

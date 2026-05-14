@@ -8,6 +8,7 @@ import { Signup } from './pages/Signup';
 import { Home } from './pages/Home';
 import { CreateSweepstake } from './pages/CreateSweepstake';
 import { JoinSweepstake } from './pages/JoinSweepstake';
+import { JoinWithCode } from './pages/JoinWithCode';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { PlayerDashboard } from './pages/PlayerDashboard';
 import './App.css';
@@ -41,6 +42,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <JoinSweepstake />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/join/code"
+              element={
+                <ProtectedRoute>
+                  <JoinWithCode />
                 </ProtectedRoute>
               }
             />

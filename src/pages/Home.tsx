@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { sweepstakeApi, Sweepstake } from '../services/sweepstakeApi';
+import { FlagImage } from '../components/FlagImage';
 
 export const Home: React.FC = () => {
   const { userProfile, logout } = useAuth();
@@ -128,7 +129,10 @@ export const Home: React.FC = () => {
                       <div className="space-y-3 mb-4">
                         <div>
                           <p className="text-sm section-subtitle">Your Team</p>
-                          <p className="text-lg font-bold text-emerald-300">{sweepstake.assignedTeam}</p>
+                          <p className="text-lg font-bold text-emerald-300" style={{ display: 'flex', alignItems: 'center' }}>
+                            <FlagImage country={sweepstake.assignedTeam} size="sm" />
+                            {sweepstake.assignedTeam}
+                          </p>
                         </div>
                         <div>
                           <p className="text-sm section-subtitle">Competition</p>

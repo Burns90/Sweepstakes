@@ -5,6 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { sweepstakeApi, Player, Sweepstake } from '../services/sweepstakeApi';
 import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { QRCodeDisplay } from '../components/QRCodeDisplay';
+import { getAllParticipantsByType, getParticipantsByType } from '../constants/participants';
+import { FlagImage } from '../components/FlagImage';
 
 interface PlayerWithName extends Player {
   playerName: string;
@@ -18,7 +21,7 @@ export const OwnerDashboard: React.FC = () => {
   const [players, setPlayers] = useState<PlayerWithName[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { availableTeams, winningTeam, setWinningTeam } = useSweepstake();
+  const { availableTeams, setAvailableTeams, winningTeam, setWinningTeam } = useSweepstake();
 
   useEffect(() => {
     if (!sweepstakeId) return;
@@ -51,10 +54,12 @@ export const OwnerDashboard: React.FC = () => {
     const playersRef = collection(db, `sweepstakes/${sweepstakeId}/players`);
     const unsubscribe = onSnapshot(playersRef, async (snapshot) => {
       const playersList: PlayerWithName[] = [];
+      const assignedTeams = new Set<string>();
 
       for (const playerDoc of snapshot.docs) {
         const playerData = playerDoc.data();
         let playerName = 'Unknown Player';
+        assignedTeams.add(playerData.assignedTeam);
 
         try {
           const userDocRef = doc(db, 'users', playerData.userId);
@@ -78,11 +83,19 @@ export const OwnerDashboard: React.FC = () => {
         });
       }
       setPlayers(playersList);
+      
+      // Update available teams based on sweepstake type
+      if (sweepstake) {
+        const allParticipants = getAllParticipantsByType(sweepstake.type);
+        const available = allParticipants.filter(team => !assignedTeams.has(team));
+        setAvailableTeams(available);
+      }
+      
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [sweepstakeId]);
+  }, [sweepstakeId, sweepstake, setAvailableTeams]);
 
   const handleTogglePaid = async (playerId: string, currentStatus: boolean) => {
     if (!sweepstakeId) return;
@@ -97,7 +110,7 @@ export const OwnerDashboard: React.FC = () => {
     if (!sweepstake) return;
 
     const csvContent = [
-      ['Name', 'Team', 'Paid'],
+      ['Name', sweepstake.type === 'eurovision' ? 'Country' : 'Team', 'Paid'],
       ...players.map((p) => [
         p.playerName,
         p.assignedTeam,
@@ -154,7 +167,7 @@ export const OwnerDashboard: React.FC = () => {
           {/* Winner Selection Dropdown */}
           <div className="mt-6">
             <label htmlFor="winner-select" className="block section-subtitle font-semibold mb-2">
-              Select Winning Team:
+              Select Winning {sweepstake.type === 'eurovision' ? 'Country' : 'Team'}:
             </label>
             <select
               id="winner-select"
@@ -162,7 +175,7 @@ export const OwnerDashboard: React.FC = () => {
               value={winningTeam || ''}
               onChange={e => setWinningTeam(e.target.value || null)}
             >
-              <option value="">-- Select Team --</option>
+              <option value="">-- Select {sweepstake.type === 'eurovision' ? 'Country' : 'Team'} --</option>
               {availableTeams.map(team => (
                 <option key={team} value={team}>{team}</option>
               ))}
@@ -173,6 +186,11 @@ export const OwnerDashboard: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* QR Code Section */}
+        <div className="mb-8">
+          <QRCodeDisplay leagueCode={sweepstake.leagueCode} sweepstakeName={sweepstake.name} />
         </div>
 
         {/* Export Button */}
@@ -189,7 +207,7 @@ export const OwnerDashboard: React.FC = () => {
             <thead>
               <tr className="bg-slate-900 border-b border-slate-700">
                 <th className="text-left px-6 py-3 font-semibold text-slate-100">Player Name</th>
-                <th className="text-left px-6 py-3 font-semibold text-slate-100">Team</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-100">{sweepstake.type === 'eurovision' ? 'Country' : 'Team'}</th>
                 <th className="text-left px-6 py-3 font-semibold text-slate-100">Paid</th>
               </tr>
             </thead>
@@ -197,7 +215,7 @@ export const OwnerDashboard: React.FC = () => {
               {players.map((player) => (
                 <tr key={player.id} className="border-b border-slate-700 hover:bg-slate-800/50 transition">
                   <td className="px-6 py-3 text-slate-100 font-medium">{player.playerName}</td>
-                  <td className="px-6 py-3 text-slate-300">{player.assignedTeam}</td>
+                  <td className="px-6 py-3 text-slate-300" style={{ display: 'flex', alignItems: 'center' }}><FlagImage country={player.assignedTeam} size="sm" />{player.assignedTeam}</td>
                   <td className="px-6 py-3">
                     <input
                       type="checkbox"
