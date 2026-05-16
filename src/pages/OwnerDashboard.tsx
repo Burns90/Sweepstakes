@@ -84,7 +84,7 @@ export const OwnerDashboard: React.FC = () => {
           assignedTeam: playerData.assignedTeam,
           paid: playerData.paid,
           isEliminated: playerData.isEliminated,
-          joinedAt: playerData.joinedAt.toDate(),
+          joinedAt: playerData.joinedAt?.toDate?.() || new Date(playerData.joinedAt),
           playerName,
         });
       }
