@@ -28,7 +28,10 @@ export const GuestLogin: React.FC = () => {
 
   // CS Case opening animation with team assignment on completion
   useEffect(() => {
+    console.log('Animation effect running - joinResult:', joinResult, 'animationPhase:', animationPhase); // DEBUG
+    
     if (joinResult && animationPhase === 'spinning') {
+      console.log('Starting animation...'); // DEBUG
       let frame = 0;
       const maxFrames = 300; // 5 seconds at 60fps
 
@@ -42,14 +45,18 @@ export const GuestLogin: React.FC = () => {
         if (frame < maxFrames) {
           requestAnimationFrame(animate);
         } else {
+          console.log('Animation complete! Landing team calculation...'); // DEBUG
           // Animation complete - calculate landing team and assign it
           const finalRotation = spins * 360;
           const landedIndex = Math.floor(finalRotation / 37.5) % joinResult.availableTeams.length;
           const assignedTeam = joinResult.availableTeams[landedIndex];
+          
+          console.log('Assigned team:', assignedTeam, 'Player name:', joinResult.playerName); // DEBUG
 
           // Assign team to player with player name
           sweepstakeApi.assignTeamToPlayer(joinResult.sweepstakeId, joinResult.guestId, assignedTeam, joinResult.playerName)
             .then(() => {
+              console.log('Team assignment successful!'); // DEBUG
               // Store guest data in localStorage
               const guestData = {
                 guestId: joinResult.guestId,
@@ -64,6 +71,7 @@ export const GuestLogin: React.FC = () => {
               setAnimationPhase('revealing');
             })
             .catch((err) => {
+              console.error('Team assignment failed:', err); // DEBUG
               setError(err.message || 'Failed to assign team');
               setAnimationPhase('revealing');
             });
@@ -109,6 +117,7 @@ export const GuestLogin: React.FC = () => {
       const guestId = `guest_${Math.random().toString(36).substring(2, 11)}`;
 
       // Pass available teams to animation - don't assign yet
+      console.log('Setting joinResult with playerName:', playerName, 'availableTeams count:', availableTeams.length); // DEBUG
       setJoinResult({
         sweepstakeId: sweepstake.id,
         sweepstakeName: sweepstake.name,
