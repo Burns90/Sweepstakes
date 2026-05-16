@@ -6,6 +6,7 @@ export const Signup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
@@ -15,6 +16,19 @@ export const Signup: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
 
     try {
       await signup(email, name, password);
@@ -72,6 +86,17 @@ export const Signup: React.FC = () => {
                 required
                 className="input-dark"
                 placeholder="Enter your password"
+              />
+            </div>
+            <div>
+              <label className="block section-subtitle font-semibold mb-2">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="input-dark"
+                placeholder="Confirm your password"
               />
             </div>
             {error && <p className="text-red-400 text-sm">{error}</p>}

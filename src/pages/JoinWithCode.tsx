@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllParticipantsByType, getRarityTier } from '../constants/participants';
+import { getRarityTier } from '../constants/participants';
 import { sweepstakeApi } from '../services/sweepstakeApi';
 import { FlagImage } from '../components/FlagImage';
 
 interface AssignmentResult {
   sweepstakeId: string;
   sweepstakeName: string;
-  assignedTeam: string;
-  sweepstakeType: 'worldcup' | 'eurovision';
+  sweepstakeType: 'worldcup' | 'eurovision' | 'custom';
+  availableTeams: string[];
+  assignedTeam?: string; // Set after animation completes
+  customOptions?: string[];
 }
 
 export const JoinWithCode: React.FC = () => {
@@ -22,29 +24,44 @@ export const JoinWithCode: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // CS Case opening animation
+  // CS Case opening animation with team assignment on completion
   useEffect(() => {
     if (assignmentResult && animationPhase === 'spinning') {
       let frame = 0;
-      const maxFrames = 120;
+      const maxFrames = 300; // 5 seconds at 60fps
 
       const animate = () => {
         frame++;
         const progress = frame / maxFrames;
-        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const easeOut = 1 - Math.pow(1 - progress, 4); // Stronger deceleration
         const spins = 8;
         setRotation(spins * 360 * easeOut);
 
         if (frame < maxFrames) {
           requestAnimationFrame(animate);
         } else {
-          setAnimationPhase('revealing');
+          // Animation complete - calculate landing team and assign it
+          const finalRotation = spins * 360;
+          const landedIndex = Math.floor(finalRotation / 37.5) % assignmentResult.availableTeams.length;
+          const assignedTeam = assignmentResult.availableTeams[landedIndex];
+
+          // Assign team to player
+          sweepstakeApi.assignTeamToPlayer(assignmentResult.sweepstakeId, user!.uid, assignedTeam)
+            .then(() => {
+              // Update assignment result with assigned team for final display
+              setAssignmentResult(prev => prev ? { ...prev, assignedTeam } : null);
+              setAnimationPhase('revealing');
+            })
+            .catch((err) => {
+              setError(err.message || 'Failed to assign team');
+              setAnimationPhase('revealing');
+            });
         }
       };
 
       requestAnimationFrame(animate);
     }
-  }, [assignmentResult, animationPhase]);
+  }, [assignmentResult, animationPhase, user]);
 
   useEffect(() => {
     const joinSweepstake = async () => {
@@ -75,14 +92,12 @@ export const JoinWithCode: React.FC = () => {
           throw new Error('All teams have been assigned');
         }
 
-        const randomTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
-        await sweepstakeApi.assignTeamToPlayer(sweepstake.id, user.uid, randomTeam);
-
         setAssignmentResult({
           sweepstakeId: sweepstake.id,
           sweepstakeName: sweepstake.name,
-          assignedTeam: randomTeam,
           sweepstakeType: sweepstake.type,
+          availableTeams,
+          customOptions: sweepstake.customOptions,
         });
         setAnimationPhase('spinning');
         setRotation(0);
@@ -99,9 +114,13 @@ export const JoinWithCode: React.FC = () => {
   // Show CS-style case opening animation
   if (assignmentResult) {
     const isRevealing = animationPhase === 'revealing';
-    const allParticipants = getAllParticipantsByType(assignmentResult.sweepstakeType);
-    const spinningTeam = allParticipants[Math.floor(rotation / 37.5) % allParticipants.length];
-    const visibleTeam = isRevealing ? assignmentResult.assignedTeam : spinningTeam;
+    // During spinning: use availableTeams, During revealing: use assignedTeam
+    const teamsForAnimation = isRevealing && assignmentResult.assignedTeam 
+      ? [assignmentResult.assignedTeam]
+      : assignmentResult.availableTeams;
+    
+    const spinningIndex = Math.floor(rotation / 37.5) % teamsForAnimation.length;
+    const visibleTeam = teamsForAnimation[spinningIndex];
     const rarityClass = getRarityTier(visibleTeam, assignmentResult.sweepstakeType);
 
     return (

@@ -9,7 +9,8 @@ interface AssignmentResult {
   sweepstakeId: string;
   sweepstakeName: string;
   assignedTeam: string;
-  sweepstakeType: 'worldcup' | 'eurovision';
+  sweepstakeType: 'worldcup' | 'eurovision' | 'custom';
+  customOptions?: string[];
 }
 
 export const JoinSweepstake: React.FC = () => {
@@ -26,7 +27,7 @@ export const JoinSweepstake: React.FC = () => {
   useEffect(() => {
     if (assignmentResult && animationPhase === 'spinning') {
       let frame = 0;
-      const maxFrames = 120; // 2 seconds at 60fps
+      const maxFrames = 144; // 2.4 seconds at 60fps (20% slower)
 
       const animate = () => {
         frame++;
@@ -80,6 +81,7 @@ export const JoinSweepstake: React.FC = () => {
         sweepstakeName: sweepstake.name,
         assignedTeam: randomTeam,
         sweepstakeType: sweepstake.type,
+        customOptions: sweepstake.customOptions,
       });
       setAnimationPhase('spinning');
       setRotation(0);
@@ -93,8 +95,8 @@ export const JoinSweepstake: React.FC = () => {
   // Show CS-style case opening animation
   if (assignmentResult) {
     const isRevealing = animationPhase === 'revealing';
-    const allParticipants = getAllParticipantsByType(assignmentResult.sweepstakeType);
-    const participantFlags = getParticipantsByType(assignmentResult.sweepstakeType);
+    const allParticipants = getAllParticipantsByType(assignmentResult.sweepstakeType, assignmentResult.customOptions);
+    const participantFlags = getParticipantsByType(assignmentResult.sweepstakeType, assignmentResult.customOptions);
     const spinningTeam = allParticipants[Math.floor(rotation / 37.5) % allParticipants.length];
     const visibleTeam = isRevealing ? assignmentResult.assignedTeam : spinningTeam;
     const rarityClass = getRarityTier(visibleTeam, assignmentResult.sweepstakeType);
@@ -219,7 +221,7 @@ export const JoinSweepstake: React.FC = () => {
               type="text"
               value={leagueCode}
               onChange={(e) => setLeagueCode(e.target.value.toUpperCase())}
-              placeholder="Enter the 6-character league code"
+              placeholder="e.g., ABC123"
               maxLength={6}
               required
               className="input-dark text-center text-2xl font-mono tracking-widest"

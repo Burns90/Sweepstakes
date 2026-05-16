@@ -5,12 +5,15 @@ import { SweepstakeProvider } from './contexts/SweepstakeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { GuestLogin } from './pages/GuestLogin';
 import { Home } from './pages/Home';
 import { CreateSweepstake } from './pages/CreateSweepstake';
 import { JoinSweepstake } from './pages/JoinSweepstake';
 import { JoinWithCode } from './pages/JoinWithCode';
 import { OwnerDashboard } from './pages/OwnerDashboard';
 import { PlayerDashboard } from './pages/PlayerDashboard';
+import { GuestPlayerDashboard } from './pages/GuestPlayerDashboard';
 import './App.css';
 
 function App() {
@@ -21,6 +24,8 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/guest-login" element={<GuestLogin />} />
             <Route
               path="/home"
               element={
@@ -68,6 +73,10 @@ function App() {
                   <PlayerDashboard />
                 </ProtectedRoute>
               }
+            />
+            <Route
+              path="/guest/sweepstake/:sweepstakeId/:guestId"
+              element={<GuestPlayerDashboard />}
             />
             <Route path="/" element={<Navigate to="/home" />} />
           </Routes>

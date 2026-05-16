@@ -6,7 +6,7 @@ import { sweepstakeApi, Player, Sweepstake } from '../services/sweepstakeApi';
 import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { QRCodeDisplay } from '../components/QRCodeDisplay';
-import { getAllParticipantsByType, getParticipantsByType } from '../constants/participants';
+import { getAllParticipantsByType } from '../constants/participants';
 import { FlagImage } from '../components/FlagImage';
 
 interface PlayerWithName extends Player {
@@ -86,7 +86,7 @@ export const OwnerDashboard: React.FC = () => {
       
       // Update available teams based on sweepstake type
       if (sweepstake) {
-        const allParticipants = getAllParticipantsByType(sweepstake.type);
+        const allParticipants = getAllParticipantsByType(sweepstake.type, sweepstake.customOptions);
         const available = allParticipants.filter(team => !assignedTeams.has(team));
         setAvailableTeams(available);
       }
@@ -103,6 +103,36 @@ export const OwnerDashboard: React.FC = () => {
       await sweepstakeApi.togglePlayerPaidStatus(sweepstakeId, playerId, currentStatus);
     } catch (err: any) {
       setError(err.message || 'Failed to update paid status');
+    }
+  };
+
+  const handleDeletePlayer = async (playerId: string, playerName: string) => {
+    if (!sweepstakeId) return;
+    const confirmed = window.confirm(`Are you sure you want to delete ${playerName}? They can rejoin and be assigned a new team.`);
+    if (!confirmed) return;
+
+    try {
+      await sweepstakeApi.deletePlayer(sweepstakeId, playerId);
+      setError(''); // Clear any previous errors
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete player');
+    }
+  };
+
+  const handleDeleteSweepstake = async () => {
+    if (!sweepstake || !sweepstakeId) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the sweepstake "${sweepstake.name}"? This action cannot be undone and all player data will be removed.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      await sweepstakeApi.deleteSweepstake(sweepstakeId);
+      navigate('/home');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete sweepstake');
+      setLoading(false);
     }
   };
 
@@ -167,7 +197,7 @@ export const OwnerDashboard: React.FC = () => {
           {/* Winner Selection Dropdown */}
           <div className="mt-6">
             <label htmlFor="winner-select" className="block section-subtitle font-semibold mb-2">
-              Select Winning {sweepstake.type === 'eurovision' ? 'Country' : 'Team'}:
+              Select Winning {sweepstake.type === 'eurovision' ? 'Country' : sweepstake.type === 'custom' ? 'Option' : 'Team'}:
             </label>
             <select
               id="winner-select"
@@ -175,7 +205,7 @@ export const OwnerDashboard: React.FC = () => {
               value={winningTeam || ''}
               onChange={e => setWinningTeam(e.target.value || null)}
             >
-              <option value="">-- Select {sweepstake.type === 'eurovision' ? 'Country' : 'Team'} --</option>
+              <option value="">-- Select {sweepstake.type === 'eurovision' ? 'Country' : sweepstake.type === 'custom' ? 'Option' : 'Team'} --</option>
               {availableTeams.map(team => (
                 <option key={team} value={team}>{team}</option>
               ))}
@@ -194,12 +224,21 @@ export const OwnerDashboard: React.FC = () => {
         </div>
 
         {/* Export Button */}
-        <button
-          onClick={handleExport}
-          className="mb-6 btn-primary py-2 px-4"
-        >
-          📥 Export Players (CSV)
-        </button>
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={handleExport}
+            className="btn-primary py-2 px-4"
+          >
+            📥 Export Players (CSV)
+          </button>
+          <button
+            onClick={handleDeleteSweepstake}
+            disabled={loading}
+            className="btn-primary py-2 px-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-500"
+          >
+            🗑️ Delete Sweepstake
+          </button>
+        </div>
 
         {/* Players Table */}
         <div className="glass-card overflow-hidden">
@@ -207,15 +246,19 @@ export const OwnerDashboard: React.FC = () => {
             <thead>
               <tr className="bg-slate-900 border-b border-slate-700">
                 <th className="text-left px-6 py-3 font-semibold text-slate-100">Player Name</th>
-                <th className="text-left px-6 py-3 font-semibold text-slate-100">{sweepstake.type === 'eurovision' ? 'Country' : 'Team'}</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-100">{sweepstake.type === 'eurovision' ? 'Country' : sweepstake.type === 'custom' ? 'Option' : 'Team'}</th>
                 <th className="text-left px-6 py-3 font-semibold text-slate-100">Paid</th>
+                <th className="text-left px-6 py-3 font-semibold text-slate-100">Actions</th>
               </tr>
             </thead>
             <tbody>
               {players.map((player) => (
                 <tr key={player.id} className="border-b border-slate-700 hover:bg-slate-800/50 transition">
                   <td className="px-6 py-3 text-slate-100 font-medium">{player.playerName}</td>
-                  <td className="px-6 py-3 text-slate-300" style={{ display: 'flex', alignItems: 'center' }}><FlagImage country={player.assignedTeam} size="sm" />{player.assignedTeam}</td>
+                  <td className="px-6 py-3 text-slate-300" style={{ display: 'flex', alignItems: 'center' }}>
+                    {sweepstake.type !== 'custom' && <FlagImage country={player.assignedTeam} size="sm" />}
+                    {player.assignedTeam}
+                  </td>
                   <td className="px-6 py-3">
                     <input
                       type="checkbox"
@@ -223,6 +266,14 @@ export const OwnerDashboard: React.FC = () => {
                       onChange={() => handleTogglePaid(player.id, player.paid)}
                       className="w-5 h-5 cursor-pointer"
                     />
+                  </td>
+                  <td className="px-6 py-3">
+                    <button
+                      onClick={() => handleDeletePlayer(player.id, player.playerName)}
+                      className="text-red-400 hover:text-red-300 hover:underline text-sm font-semibold transition"
+                    >
+                      Remove
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -7,12 +7,13 @@ import {
   doc,
   getDoc,
   updateDoc,
+  deleteDoc,
   Timestamp,
 } from 'firebase/firestore';
 import { ALL_TEAMS } from '../constants/teams';
 import { db } from './firebase';
 
-export type SweepstakeType = 'worldcup' | 'eurovision';
+export type SweepstakeType = 'worldcup' | 'eurovision' | 'custom';
 
 export interface Sweepstake {
   id: string;
@@ -25,6 +26,7 @@ export interface Sweepstake {
   status: 'active' | 'completed' | 'cancelled';
   winnerId: string | null;
   createdAt: Date;
+  customOptions?: string[];
 }
 
 export interface Player {
@@ -46,11 +48,12 @@ export const sweepstakeApi = {
     ownerId: string,
     name: string,
     enrollmentDeadline: Date,
-    type: SweepstakeType = 'worldcup'
+    type: SweepstakeType = 'worldcup',
+    customOptions?: string[]
   ): Promise<Sweepstake> {
     const leagueCode = this.generateLeagueCode();
 
-    const sweepstakeData = {
+    const sweepstakeData: any = {
       ownerId,
       name,
       leagueCode,
@@ -62,6 +65,10 @@ export const sweepstakeApi = {
       createdAt: Timestamp.fromDate(new Date()),
     };
 
+    if (type === 'custom' && customOptions) {
+      sweepstakeData.customOptions = customOptions;
+    }
+
     const docRef = await addDoc(collection(db, 'sweepstakes'), sweepstakeData);
 
     return {
@@ -69,6 +76,7 @@ export const sweepstakeApi = {
       ...sweepstakeData,
       enrollmentDeadline,
       createdAt: new Date(),
+      customOptions: customOptions,
     } as Sweepstake;
   },
 
@@ -94,6 +102,7 @@ export const sweepstakeApi = {
       status: data.status,
       winnerId: data.winnerId,
       createdAt: data.createdAt.toDate(),
+      customOptions: data.customOptions,
     };
   },
 
@@ -117,6 +126,7 @@ export const sweepstakeApi = {
       status: data.status,
       winnerId: data.winnerId,
       createdAt: data.createdAt.toDate(),
+      customOptions: data.customOptions,
     };
   },
 
@@ -153,12 +163,27 @@ export const sweepstakeApi = {
   },
 
   async getAvailableTeams(sweepstakeId: string): Promise<string[]> {
+    // Fetch the sweepstake to get its type and custom options
+    const sweepstake = await this.getSweepstakeById(sweepstakeId);
+    if (!sweepstake) {
+      throw new Error('Sweepstake not found');
+    }
+
     const playersSnapshot = await getDocs(
       collection(db, `sweepstakes/${sweepstakeId}/players`)
     );
     const assignedTeams = playersSnapshot.docs.map((doc) => doc.data().assignedTeam);
 
-    return ALL_TEAMS.filter((team) => !assignedTeams.includes(team));
+    // Determine the full list of available options based on sweepstake type
+    let allOptions: string[] = ALL_TEAMS; // Default to world cup teams
+    if (sweepstake.type === 'eurovision') {
+      const { ALL_EUROVISION_COUNTRIES } = await import('../constants/eurovision');
+      allOptions = ALL_EUROVISION_COUNTRIES;
+    } else if (sweepstake.type === 'custom' && sweepstake.customOptions) {
+      allOptions = sweepstake.customOptions;
+    }
+
+    return allOptions.filter((team) => !assignedTeams.includes(team));
   },
 
   async getPlayersByTeam(sweepstakeId: string, team: string): Promise<Player | null> {
@@ -205,6 +230,11 @@ export const sweepstakeApi = {
     await updateDoc(playerRef, { isEliminated });
   },
 
+  async deletePlayer(sweepstakeId: string, playerId: string): Promise<void> {
+    const playerRef = doc(db, `sweepstakes/${sweepstakeId}/players`, playerId);
+    await deleteDoc(playerRef);
+  },
+
   async getOwnedSweepstakes(userId: string): Promise<Sweepstake[]> {
     const q = query(collection(db, 'sweepstakes'), where('ownerId', '==', userId));
     const snapshot = await getDocs(q);
@@ -222,6 +252,7 @@ export const sweepstakeApi = {
         status: data.status,
         winnerId: data.winnerId,
         createdAt: data.createdAt.toDate(),
+        customOptions: data.customOptions,
       };
     });
   },
@@ -251,10 +282,25 @@ export const sweepstakeApi = {
           winnerId: sweepData.winnerId,
           createdAt: sweepData.createdAt.toDate(),
           assignedTeam: playerData.assignedTeam,
+          customOptions: sweepData.customOptions,
         });
       }
     }
 
     return playerSweepstakes;
+  },
+
+  async deleteSweepstake(sweepstakeId: string): Promise<void> {
+    // Delete all players in this sweepstake first
+    const playersRef = collection(db, `sweepstakes/${sweepstakeId}/players`);
+    const playersSnapshot = await getDocs(playersRef);
+    
+    for (const playerDoc of playersSnapshot.docs) {
+      await deleteDoc(playerDoc.ref);
+    }
+
+    // Delete the sweepstake document
+    const sweepstakeRef = doc(db, 'sweepstakes', sweepstakeId);
+    await deleteDoc(sweepstakeRef);
   },
 };
