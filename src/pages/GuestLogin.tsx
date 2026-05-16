@@ -30,56 +30,62 @@ export const GuestLogin: React.FC = () => {
   useEffect(() => {
     console.log('Animation effect running - joinResult:', joinResult, 'animationPhase:', animationPhase); // DEBUG
     
-    if (joinResult && animationPhase === 'spinning') {
-      console.log('Starting animation...'); // DEBUG
-      let frame = 0;
-      const maxFrames = 300; // 5 seconds at 60fps
-
-      const animate = () => {
-        frame++;
-        const progress = frame / maxFrames;
-        const easeOut = 1 - Math.pow(1 - progress, 4); // Stronger deceleration
-        const spins = 8;
-        setRotation(spins * 360 * easeOut);
-
-        if (frame < maxFrames) {
-          requestAnimationFrame(animate);
-        } else {
-          console.log('Animation complete! Landing team calculation...'); // DEBUG
-          // Animation complete - calculate landing team and assign it
-          const finalRotation = spins * 360;
-          const landedIndex = Math.floor(finalRotation / 37.5) % joinResult.availableTeams.length;
-          const assignedTeam = joinResult.availableTeams[landedIndex];
-          
-          console.log('Assigned team:', assignedTeam, 'Player name:', joinResult.playerName); // DEBUG
-
-          // Assign team to player with player name
-          sweepstakeApi.assignTeamToPlayer(joinResult.sweepstakeId, joinResult.guestId, assignedTeam, joinResult.playerName)
-            .then(() => {
-              console.log('Team assignment successful!'); // DEBUG
-              // Store guest data in localStorage
-              const guestData = {
-                guestId: joinResult.guestId,
-                playerName: joinResult.playerName,
-                sweepstakeId: joinResult.sweepstakeId,
-                assignedTeam,
-              };
-              localStorage.setItem(`guest_${joinResult.sweepstakeId}`, JSON.stringify(guestData));
-
-              // Update join result with assigned team for final display
-              setJoinResult(prev => prev ? { ...prev, assignedTeam } : null);
-              setAnimationPhase('revealing');
-            })
-            .catch((err) => {
-              console.error('Team assignment failed:', err); // DEBUG
-              setError(err.message || 'Failed to assign team');
-              setAnimationPhase('revealing');
-            });
-        }
-      };
-
-      requestAnimationFrame(animate);
+    if (!joinResult || animationPhase !== 'spinning') {
+      return;
     }
+
+    console.log('Starting animation with playerName:', joinResult.playerName); // DEBUG
+    let frame = 0;
+    const maxFrames = 300; // 5 seconds at 60fps
+    const playerName = joinResult.playerName; // Capture in effect scope, not in callback
+    const sweepstakeId = joinResult.sweepstakeId;
+    const guestId = joinResult.guestId;
+    const availableTeams = joinResult.availableTeams;
+
+    const animate = () => {
+      frame++;
+      const progress = frame / maxFrames;
+      const easeOut = 1 - Math.pow(1 - progress, 4); // Stronger deceleration
+      const spins = 8;
+      setRotation(spins * 360 * easeOut);
+
+      if (frame < maxFrames) {
+        requestAnimationFrame(animate);
+      } else {
+        console.log('Animation complete! Landing team calculation...'); // DEBUG
+        // Animation complete - calculate landing team and assign it
+        const finalRotation = spins * 360;
+        const landedIndex = Math.floor(finalRotation / 37.5) % availableTeams.length;
+        const assignedTeam = availableTeams[landedIndex];
+        
+        console.log('Assigned team:', assignedTeam, 'Player name from effect:', playerName); // DEBUG
+
+        // Assign team to player with player name
+        sweepstakeApi.assignTeamToPlayer(sweepstakeId, guestId, assignedTeam, playerName)
+          .then(() => {
+            console.log('Team assignment successful!'); // DEBUG
+            // Store guest data in localStorage
+            const guestData = {
+              guestId,
+              playerName,
+              sweepstakeId,
+              assignedTeam,
+            };
+            localStorage.setItem(`guest_${sweepstakeId}`, JSON.stringify(guestData));
+
+            // Update join result with assigned team for final display
+            setJoinResult(prev => prev ? { ...prev, assignedTeam } : null);
+            setAnimationPhase('revealing');
+          })
+          .catch((err) => {
+            console.error('Team assignment failed:', err); // DEBUG
+            setError(err.message || 'Failed to assign team');
+            setAnimationPhase('revealing');
+          });
+      }
+    };
+
+    requestAnimationFrame(animate);
   }, [joinResult, animationPhase]);
 
   const handleSubmit = async (e: React.FormEvent) => {

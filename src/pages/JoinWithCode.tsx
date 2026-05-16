@@ -26,41 +26,46 @@ export const JoinWithCode: React.FC = () => {
 
   // CS Case opening animation with team assignment on completion
   useEffect(() => {
-    if (assignmentResult && animationPhase === 'spinning') {
-      let frame = 0;
-      const maxFrames = 300; // 5 seconds at 60fps
-
-      const animate = () => {
-        frame++;
-        const progress = frame / maxFrames;
-        const easeOut = 1 - Math.pow(1 - progress, 4); // Stronger deceleration
-        const spins = 8;
-        setRotation(spins * 360 * easeOut);
-
-        if (frame < maxFrames) {
-          requestAnimationFrame(animate);
-        } else {
-          // Animation complete - calculate landing team and assign it
-          const finalRotation = spins * 360;
-          const landedIndex = Math.floor(finalRotation / 37.5) % assignmentResult.availableTeams.length;
-          const assignedTeam = assignmentResult.availableTeams[landedIndex];
-
-          // Assign team to player
-          sweepstakeApi.assignTeamToPlayer(assignmentResult.sweepstakeId, user!.uid, assignedTeam)
-            .then(() => {
-              // Update assignment result with assigned team for final display
-              setAssignmentResult(prev => prev ? { ...prev, assignedTeam } : null);
-              setAnimationPhase('revealing');
-            })
-            .catch((err) => {
-              setError(err.message || 'Failed to assign team');
-              setAnimationPhase('revealing');
-            });
-        }
-      };
-
-      requestAnimationFrame(animate);
+    if (!assignmentResult || animationPhase !== 'spinning') {
+      return;
     }
+
+    let frame = 0;
+    const maxFrames = 300; // 5 seconds at 60fps
+    const sweepstakeId = assignmentResult.sweepstakeId;
+    const availableTeams = assignmentResult.availableTeams;
+    const userId = user?.uid;
+
+    const animate = () => {
+      frame++;
+      const progress = frame / maxFrames;
+      const easeOut = 1 - Math.pow(1 - progress, 4); // Stronger deceleration
+      const spins = 8;
+      setRotation(spins * 360 * easeOut);
+
+      if (frame < maxFrames) {
+        requestAnimationFrame(animate);
+      } else {
+        // Animation complete - calculate landing team and assign it
+        const finalRotation = spins * 360;
+        const landedIndex = Math.floor(finalRotation / 37.5) % availableTeams.length;
+        const assignedTeam = availableTeams[landedIndex];
+
+        // Assign team to player
+        sweepstakeApi.assignTeamToPlayer(sweepstakeId, userId!, assignedTeam)
+          .then(() => {
+            // Update assignment result with assigned team for final display
+            setAssignmentResult(prev => prev ? { ...prev, assignedTeam } : null);
+            setAnimationPhase('revealing');
+          })
+          .catch((err) => {
+            setError(err.message || 'Failed to assign team');
+            setAnimationPhase('revealing');
+          });
+      }
+    };
+
+    requestAnimationFrame(animate);
   }, [assignmentResult, animationPhase, user]);
 
   useEffect(() => {
