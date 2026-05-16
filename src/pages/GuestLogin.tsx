@@ -28,13 +28,10 @@ export const GuestLogin: React.FC = () => {
 
   // CS Case opening animation with team assignment on completion
   useEffect(() => {
-    console.log('Animation effect running - joinResult:', joinResult, 'animationPhase:', animationPhase); // DEBUG
-    
     if (!joinResult || animationPhase !== 'spinning') {
       return;
     }
 
-    console.log('Starting animation with playerName:', joinResult.playerName); // DEBUG
     let frame = 0;
     const maxFrames = 300; // 5 seconds at 60fps
     const playerName = joinResult.playerName; // Capture in effect scope, not in callback
@@ -52,19 +49,14 @@ export const GuestLogin: React.FC = () => {
       if (frame < maxFrames) {
         requestAnimationFrame(animate);
       } else {
-        console.log('Animation complete! Landing team calculation...'); // DEBUG
-        // Animation complete - calculate landing team and assign it
-        const finalRotation = spins * 360;
-        const landedIndex = Math.floor(finalRotation / 37.5) % availableTeams.length;
-        const assignedTeam = availableTeams[landedIndex];
-        
-        console.log('Assigned team:', assignedTeam, 'Player name from effect:', playerName); // DEBUG
-        console.log('About to call assignTeamToPlayer with:', { sweepstakeId, guestId, assignedTeam, playerName }); // DEBUG
+          // Animation complete - calculate landing team and assign it
+          const finalRotation = spins * 360;
+          const landedIndex = Math.floor(finalRotation / 37.5) % availableTeams.length;
+          const assignedTeam = availableTeams[landedIndex];
 
-        // Assign team to player with player name
-        sweepstakeApi.assignTeamToPlayer(sweepstakeId, guestId, assignedTeam, playerName)
-          .then(() => {
-            console.log('Team assignment successful!'); // DEBUG
+          // Assign team to player with player name
+          sweepstakeApi.assignTeamToPlayer(sweepstakeId, guestId, assignedTeam, playerName)
+            .then(() => {
             // Store guest data in localStorage
             const guestData = {
               guestId,
@@ -124,7 +116,6 @@ export const GuestLogin: React.FC = () => {
       const guestId = `guest_${Math.random().toString(36).substring(2, 11)}`;
 
       // Pass available teams to animation - don't assign yet
-      console.log('Setting joinResult with playerName:', playerName, 'availableTeams count:', availableTeams.length); // DEBUG
       setJoinResult({
         sweepstakeId: sweepstake.id,
         sweepstakeName: sweepstake.name,

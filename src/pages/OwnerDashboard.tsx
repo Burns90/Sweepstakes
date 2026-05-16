@@ -62,12 +62,9 @@ export const OwnerDashboard: React.FC = () => {
         let playerName = 'Unknown Player';
         assignedTeams.add(playerData.assignedTeam);
 
-        console.log('Processing player - userId:', playerData.userId, 'playerData.playerName:', playerData.playerName); // DEBUG
-
         // First check if playerName is stored in player document (for guests)
         if (playerData.playerName) {
           playerName = playerData.playerName;
-          console.log('✓ Using guest playerName from document:', playerName); // DEBUG
         } else {
           // Otherwise try to fetch from users collection (for authenticated users)
           try {
@@ -76,12 +73,9 @@ export const OwnerDashboard: React.FC = () => {
             if (userDocSnap.exists()) {
               const userData = userDocSnap.data();
               playerName = userData.name || 'Unknown Player';
-              console.log('✓ Using name from users collection:', playerName); // DEBUG
-            } else {
-              console.log('⚠ User document not found for:', playerData.userId); // DEBUG
             }
           } catch (err) {
-            console.log('⚠ Error fetching user document:', err); // DEBUG
+            // Keep fallback name when user lookup fails
           }
         }
 
@@ -96,8 +90,6 @@ export const OwnerDashboard: React.FC = () => {
           playerName,
         });
       }
-      
-      console.log('Final players list with names:', playersList); // DEBUG
       setPlayers(playersList);
       
       // Update available teams based on sweepstake type
