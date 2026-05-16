@@ -56,29 +56,32 @@ export const OwnerDashboard: React.FC = () => {
       const playersList: PlayerWithName[] = [];
       const assignedTeams = new Set<string>();
 
+      // Process all players
       for (const playerDoc of snapshot.docs) {
         const playerData = playerDoc.data();
         let playerName = 'Unknown Player';
         assignedTeams.add(playerData.assignedTeam);
 
-        console.log('Player data from Firestore:', playerData); // DEBUG
+        console.log('Processing player - userId:', playerData.userId, 'playerData.playerName:', playerData.playerName); // DEBUG
 
         // First check if playerName is stored in player document (for guests)
         if (playerData.playerName) {
           playerName = playerData.playerName;
-          console.log('Using stored playerName:', playerName); // DEBUG
+          console.log('✓ Using guest playerName from document:', playerName); // DEBUG
         } else {
           // Otherwise try to fetch from users collection (for authenticated users)
           try {
             const userDocRef = doc(db, 'users', playerData.userId);
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
-              playerName = userDocSnap.data().name;
-              console.log('Using user name from users collection:', playerName); // DEBUG
+              const userData = userDocSnap.data();
+              playerName = userData.name || 'Unknown Player';
+              console.log('✓ Using name from users collection:', playerName); // DEBUG
+            } else {
+              console.log('⚠ User document not found for:', playerData.userId); // DEBUG
             }
-          } catch {
-            // Keep fallback name when user lookup fails.
-            console.log('Failed to fetch user name for:', playerData.userId); // DEBUG
+          } catch (err) {
+            console.log('⚠ Error fetching user document:', err); // DEBUG
           }
         }
 
@@ -93,6 +96,8 @@ export const OwnerDashboard: React.FC = () => {
           playerName,
         });
       }
+      
+      console.log('Final players list with names:', playersList); // DEBUG
       setPlayers(playersList);
       
       // Update available teams based on sweepstake type
