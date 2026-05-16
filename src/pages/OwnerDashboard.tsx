@@ -61,9 +61,12 @@ export const OwnerDashboard: React.FC = () => {
         let playerName = 'Unknown Player';
         assignedTeams.add(playerData.assignedTeam);
 
+        console.log('Player data from Firestore:', playerData); // DEBUG
+
         // First check if playerName is stored in player document (for guests)
         if (playerData.playerName) {
           playerName = playerData.playerName;
+          console.log('Using stored playerName:', playerName); // DEBUG
         } else {
           // Otherwise try to fetch from users collection (for authenticated users)
           try {
@@ -71,9 +74,11 @@ export const OwnerDashboard: React.FC = () => {
             const userDocSnap = await getDoc(userDocRef);
             if (userDocSnap.exists()) {
               playerName = userDocSnap.data().name;
+              console.log('Using user name from users collection:', playerName); // DEBUG
             }
           } catch {
             // Keep fallback name when user lookup fails.
+            console.log('Failed to fetch user name for:', playerData.userId); // DEBUG
           }
         }
 

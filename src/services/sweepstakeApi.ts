@@ -159,6 +159,8 @@ export const sweepstakeApi = {
       playerData.playerName = playerName;
     }
 
+    console.log('Storing player data:', playerData); // DEBUG
+
     const docRef = await addDoc(collection(db, `sweepstakes/${sweepstakeId}/players`), playerData);
 
     return {
