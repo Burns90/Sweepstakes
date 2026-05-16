@@ -146,6 +146,8 @@ export const sweepstakeApi = {
     team: string,
     playerName?: string
   ): Promise<Player> {
+    console.log('assignTeamToPlayer called with:', { sweepstakeId, userId, team, playerName }); // DEBUG
+    
     const playerData: any = {
       sweepstakeId,
       userId,
@@ -155,8 +157,11 @@ export const sweepstakeApi = {
       joinedAt: Timestamp.fromDate(new Date()),
     };
 
-    if (playerName) {
+    if (playerName && playerName.trim()) {
       playerData.playerName = playerName;
+      console.log('Added playerName to playerData:', playerName); // DEBUG
+    } else {
+      console.log('⚠ playerName was empty or falsy:', playerName); // DEBUG
     }
 
     console.log('Storing player data:', playerData); // DEBUG

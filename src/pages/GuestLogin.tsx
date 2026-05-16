@@ -59,6 +59,7 @@ export const GuestLogin: React.FC = () => {
         const assignedTeam = availableTeams[landedIndex];
         
         console.log('Assigned team:', assignedTeam, 'Player name from effect:', playerName); // DEBUG
+        console.log('About to call assignTeamToPlayer with:', { sweepstakeId, guestId, assignedTeam, playerName }); // DEBUG
 
         // Assign team to player with player name
         sweepstakeApi.assignTeamToPlayer(sweepstakeId, guestId, assignedTeam, playerName)
