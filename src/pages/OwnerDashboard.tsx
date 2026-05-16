@@ -61,14 +61,20 @@ export const OwnerDashboard: React.FC = () => {
         let playerName = 'Unknown Player';
         assignedTeams.add(playerData.assignedTeam);
 
-        try {
-          const userDocRef = doc(db, 'users', playerData.userId);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            playerName = userDocSnap.data().name;
+        // First check if playerName is stored in player document (for guests)
+        if (playerData.playerName) {
+          playerName = playerData.playerName;
+        } else {
+          // Otherwise try to fetch from users collection (for authenticated users)
+          try {
+            const userDocRef = doc(db, 'users', playerData.userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              playerName = userDocSnap.data().name;
+            }
+          } catch {
+            // Keep fallback name when user lookup fails.
           }
-        } catch {
-          // Keep fallback name when user lookup fails.
         }
 
         playersList.push({

@@ -37,6 +37,7 @@ export interface Player {
   paid: boolean;
   isEliminated: boolean;
   joinedAt: Date;
+  playerName?: string; // For guest players
 }
 
 export const sweepstakeApi = {
@@ -142,9 +143,10 @@ export const sweepstakeApi = {
   async assignTeamToPlayer(
     sweepstakeId: string,
     userId: string,
-    team: string
+    team: string,
+    playerName?: string
   ): Promise<Player> {
-    const playerData = {
+    const playerData: any = {
       sweepstakeId,
       userId,
       assignedTeam: team,
@@ -152,6 +154,10 @@ export const sweepstakeApi = {
       isEliminated: false,
       joinedAt: Timestamp.fromDate(new Date()),
     };
+
+    if (playerName) {
+      playerData.playerName = playerName;
+    }
 
     const docRef = await addDoc(collection(db, `sweepstakes/${sweepstakeId}/players`), playerData);
 

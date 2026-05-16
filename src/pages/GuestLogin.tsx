@@ -47,8 +47,8 @@ export const GuestLogin: React.FC = () => {
           const landedIndex = Math.floor(finalRotation / 37.5) % joinResult.availableTeams.length;
           const assignedTeam = joinResult.availableTeams[landedIndex];
 
-          // Assign team to player
-          sweepstakeApi.assignTeamToPlayer(joinResult.sweepstakeId, joinResult.guestId, assignedTeam)
+          // Assign team to player with player name
+          sweepstakeApi.assignTeamToPlayer(joinResult.sweepstakeId, joinResult.guestId, assignedTeam, joinResult.playerName)
             .then(() => {
               // Store guest data in localStorage
               const guestData = {
